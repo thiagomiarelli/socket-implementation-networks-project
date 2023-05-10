@@ -21,64 +21,50 @@ int main(int argc, char *argv[]) {
         usage(argc, argv);
     }
 
-    //prepara o endereco do servidor
-    struct sockaddr_storage storage;
-    if(server_sockaddr_init(argv[1], argv[2], &storage) != 0) { //o addrparse pega o endereco, porta e armazena no storage
-        usage(argc, argv); //se nao conseguir, sai do programa
-    }
+    const char *protocol = argv[1];
 
-    //cria o socket
-    int sockfd;
-    sockfd = socket(storage.ss_family, SOCK_STREAM, 0); //aqui determinamos o tipo de endereco, o tipo de socket (TCP) e o protocolo
-    if (sockfd < 0) {
-        logexit("socket");
-    }
+    /* ====== SETTING UP ADDRESS AND SOCKET ====== */
+
+    struct sockaddr_storage storage;
+    if(server_sockaddr_init(argv[1], argv[2], &storage) != 0) usage(argc, argv);
+
+    int sockfd = socket(storage.ss_family, SOCK_STREAM, 0);
+    if (sockfd < 0) logexit("socket");
 
     int enable = 1;
-    if (0 != setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int))) {
-        logexit("setsockopt");
-    }
+    if (0 != setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int))) logexit("setsockopt");
 
 	struct sockaddr *address = (struct sockaddr *)(&storage);
+    socklen_t address_len = !strcmp(protocol, "v4") ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6);
 
-    if(bind(sockfd, address, sizeof(struct sockaddr_in)) != 0) {
-        logexit("bind");
-    }
-
-    if(listen(sockfd, 10) != 0) {
-        logexit("listen");
-    }
+    if(bind(sockfd, address, address_len) != 0) logexit("bind");
+    if(listen(sockfd, 10) != 0) logexit("listen");
 
     char address_string[BUFFER_SIZE];
     addrtostr(address, address_string, BUFFER_SIZE);
     printf("listening on %s\n", address_string);
 
+    /* ====== ACCEPTING CONNECTIONS ====== */
     while(1){
         struct sockaddr_storage client;
         struct sockaddr *clientAddress = (struct sockaddr *) &client;
         socklen_t clientAddressLen = sizeof(client);
 
-        int clientfd = accept(sockfd, clientAddress, &clientAddressLen); //socket do cliente
-
-        if(clientfd == -1) {
-            logexit("accept");
-        }
+        int clientfd = accept(sockfd, clientAddress, &clientAddressLen); 
+        if(clientfd == -1) logexit("accept");
 
         char clientAddressString[BUFFER_SIZE];
         addrtostr(clientAddress, clientAddressString, BUFFER_SIZE);
-        printf("new connection from %s\n", clientAddressString);
+        printf("[LOG] New connection from: %s\n", clientAddressString);
 
         char buffer[BUFFER_SIZE];
         memset(buffer, 0, BUFFER_SIZE);
         size_t count = recv(clientfd, buffer, BUFFER_SIZE-1, 0);
-
         printf("[MSG] %s: %s | bytes %zu\n", clientAddressString, buffer, count);
 
-        sprintf(buffer, "remote endpoint: %.1000s\n", clientAddressString);
+        sprintf(buffer, "[LOG] Acknoledgement from: %.1000s\n", clientAddressString);
         count = send(clientfd, buffer, strlen(buffer) + 1, 0);
-        if (count != strlen(buffer) + 1) {
-            logexit("send");
-        }
+        if (count != strlen(buffer) + 1) logexit("send");
 
         close(clientfd);
     }

@@ -17,61 +17,46 @@ void usage(int argc, char *argv[]) {
 }
 
 int main(int argc, char *argv[]) {
-    //valida o número de argumentos
-    if (argc < 3) {
-        usage(argc, argv);
-    }
 
-    //cria o socket
-    int sockfd;
+    /* === SETUP CLIENT SERVER AND SOCK === */
 
-    //prepara o endereco do servidor
+    if (argc < 3) usage(argc, argv);
+
     struct sockaddr_storage storage;
-    if(address_parser(argv[1], argv[2], &storage)) { //o addrparse pega o endereco, porta e armazena no storage
-        usage(argc, argv); //se nao conseguir, sai do programa
-    }
+    if(address_parser(argv[1], argv[2], &storage)) usage(argc, argv);
 
-    sockfd = socket(storage.ss_family, SOCK_STREAM, 0);
-    if (sockfd < 0) {
-        logexit("socket");
-    }
+    int sockfd = socket(storage.ss_family, SOCK_STREAM, 0);
+    if (sockfd < 0) logexit("socket");
 
 	struct sockaddr *address = (struct sockaddr *)(&storage);
-
-    //conecta ao servidor
-    if(0 != connect(sockfd, address, sizeof(storage))) {
-        logexit("connect");
-    }
+    socklen_t address_len = address->sa_family ==  AF_INET ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6);
+    if(0 != connect(sockfd, address, address_len)) logexit("connect");
     
-
-    //obtem o endereco como string para imprimir
     char address_string[ADDR_SIZE];
     addrtostr(address, address_string, ADDR_SIZE);
-    printf("connected to %s\n", address_string);
+    printf("[LOG] Connected to: %s\n", address_string);
 
+    /* === SEND AND RECEIVE MESSAGES === */
 
-    //obtem a mensagem
     char buffer[BUFFER_SIZE];
     printf("message: ");
     fgets(buffer, BUFFER_SIZE, stdin);
 
-
-    // envia mensagem
     size_t count = send(sockfd, buffer, strlen(buffer) + 1, 0);
-    if (count < 0) {
-        logexit("send");
-    }
+    if (count < 0) logexit("send");
 
-    //recebe resposta
-    memset(buffer, 0, BUFFER_SIZE); //limpa o buffer, definindo todos os bytes como 0
-    unsigned total = 0; //total de bytes recebidos, usado para controlar o recebimento parcial dos dados
-    while(1) { // fica esperando pra receber a mensagem
+    /* === RECEIVES ACK FROM SERVER === */
+    memset(buffer, 0, BUFFER_SIZE);
+    unsigned total = 0;
+
+    while(1) {
         count = recv(sockfd, buffer + total, BUFFER_SIZE-1, 0);
         if (count == 0) {
             break;
         } else if (count < 0) {
             logexit("recv");
         }
+        
         total += count;
         printf("received: %s\n", buffer);
     }
