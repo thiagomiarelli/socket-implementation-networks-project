@@ -94,3 +94,15 @@ int server_sockaddr_init(const char *proto, const char *portstr, struct sockaddr
 
     return 0;
 } 
+
+void get_user_input(char* buffer, size_t size){
+    char* result = fgets(buffer, size, stdin);
+    if(result == NULL){
+        perror("fgets");
+        exit(EXIT_FAILURE);
+    }
+    size_t len = strlen(buffer);
+    if(len > 0 && buffer[len-1] == '\n'){
+        buffer[len-1] = '\0';
+    }
+}

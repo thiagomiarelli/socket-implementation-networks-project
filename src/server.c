@@ -43,8 +43,6 @@ int setup_server(int argc, char* argv[]){
     return sockfd;
 }
 
-
-
 int main(int argc, char *argv[]) {
 
     int sockfd = setup_server(argc, argv);
