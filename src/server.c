@@ -15,12 +15,8 @@ void usage(int argc, char *argv[]) {
     exit(1);
 }
 
-
-int main(int argc, char *argv[]) {
-    if(argc < 3) {
-        usage(argc, argv);
-    }
-
+int setup_server(int argc, char* argv[]){
+    if(argc < 3) usage(argc, argv);
     const char *protocol = argv[1];
 
     /* ====== SETTING UP ADDRESS AND SOCKET ====== */
@@ -43,6 +39,16 @@ int main(int argc, char *argv[]) {
     char address_string[BUFFER_SIZE];
     addrtostr(address, address_string, BUFFER_SIZE);
     printf("listening on %s\n", address_string);
+
+    return sockfd;
+}
+
+
+
+int main(int argc, char *argv[]) {
+
+    int sockfd = setup_server(argc, argv);
+
 
     /* ====== ACCEPTING CONNECTIONS ====== */
     while(1){
