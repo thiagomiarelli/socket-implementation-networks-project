@@ -44,6 +44,7 @@ int setup_client(int argc, char* argv[]){
 int main(int argc, char *argv[]) {
 
     int sockfd = setup_client(argc, argv);
+    int fileSelected = 0;
 
     while(1){
         /* === RECEIVE COMMAND === */
@@ -55,6 +56,7 @@ int main(int argc, char *argv[]) {
         char attribute[COMMAND_SIZE];
         int command_type = handleUserInput(command, attribute);
 
+        /* === AUX VARS === */
         FILE file;
         char fileContent[FILESIZE];
 
@@ -62,18 +64,32 @@ int main(int argc, char *argv[]) {
             case 1:
                 {
                     int selected_file_status = selectFile(attribute, &file, fileContent);
-                    if(selected_file_status == -1) continue;            
+                    if(selected_file_status == -1){
+                        continue;
+                    } else {
+                        fileSelected = 1;
+                    }
                     break;
                 }
             case 2:
-                {
+                {   
+                    if(!fileSelected){
+                        printf("no file selected!\n");
+                        continue;
+                    }
+
                     char message[FILESIZE];
-                    sendFile(fileContent, attribute, sockfd);
+                    int sendStatus = sendFile(fileContent, attribute, sockfd);
+                    if(sendStatus == -1) continue;
 
                     memset(message, 0, FILESIZE);
                     unsigned total = 0;
                     size_t count = 0;
-                    
+
+                    //reseting file selection
+                    memset(fileContent, 0, FILESIZE);
+                    fileSelected = 0;
+
                     while(1) {
                         count = recv(sockfd, message + total, FILESIZE-1, 0);
                         if (count == 0) {
@@ -89,8 +105,27 @@ int main(int argc, char *argv[]) {
                     break;
                 }
             case 3:
-                printf("Closing connection...\n");
-                close(sockfd);
+                char serverResponse[FILESIZE];
+
+                size_t count = send(sockfd, "exit", strlen("exit") + 1, 0);
+                if (count < 0) return -1;
+
+                unsigned total = 0;
+                size_t count = 0;
+
+                while(1) {
+                        count = recv(sockfd, serverResponse + total, FILESIZE-1, 0);
+                        if (count == 0) {
+                            break;
+                        } else if (count < 0) {
+                           logexit("recv");
+                        }
+                        total += count;
+                }
+
+                if(close(sockfd) != 0) logexit("close");
+                return 0;
+
                 break;
             default:
                 continue;
