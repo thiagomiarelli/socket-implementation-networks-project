@@ -105,28 +105,31 @@ int main(int argc, char *argv[]) {
                     break;
                 }
             case 3:
-                char serverResponse[FILESIZE];
+               {
+                    char serverResponse[FILESIZE];
 
-                size_t count = send(sockfd, "exit", strlen("exit") + 1, 0);
-                if (count < 0) return -1;
+                    int sendStatus = send(sockfd, "exit", strlen("exit") + 1, 0);
+                    if (sendStatus < 0) return -1;
 
-                unsigned total = 0;
-                size_t count = 0;
+                    unsigned total = 0;
+                    size_t count = 0;
 
-                while(1) {
-                        count = recv(sockfd, serverResponse + total, FILESIZE-1, 0);
-                        if (count == 0) {
-                            break;
-                        } else if (count < 0) {
-                           logexit("recv");
-                        }
-                        total += count;
+                    while(1) {
+                            count = recv(sockfd, serverResponse + total, FILESIZE-1, 0);
+                            if (count == 0) {
+                                printf("Recebeu nada");
+                                break;
+                            } else if (count < 0) {
+                            logexit("recv");
+                            } 
+                            total += count;
+                    }
+
+                    if(close(sockfd) != 0) logexit("close");
+                    return 0;
+
+                    break;
                 }
-
-                if(close(sockfd) != 0) logexit("close");
-                return 0;
-
-                break;
             default:
                 continue;
                 break;

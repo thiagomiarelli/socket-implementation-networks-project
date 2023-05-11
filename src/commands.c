@@ -102,6 +102,7 @@ int sendFile(char* content, char* filename, int sockfd) {
     char message[FILESIZE];
 
     strcpy(message, filename);
+    strcat(message, "\n");
     strcat(message, content);
     strcat(message, "\\end");
     
