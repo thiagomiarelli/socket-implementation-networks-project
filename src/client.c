@@ -4,11 +4,13 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include "utils.h"
+#include "commands.h"
 
 #include <sys/socket.h>
 #include <sys/types.h>
 
 #define COMMAND_SIZE 512
+#define FILESIZE 512
 #define ADDR_SIZE 128
 
 void usage(int argc, char *argv[]) {
@@ -43,32 +45,62 @@ int main(int argc, char *argv[]) {
 
     int sockfd = setup_client(argc, argv);
 
-    /* === HANDLE COMMAND === */
+    while(1){
+        /* === RECEIVE COMMAND === */
+        printf("command: ");
+        char command[COMMAND_SIZE];
+        get_user_input(command, COMMAND_SIZE);
 
-    char command[COMMAND_SIZE];
-    get_user_input(command, COMMAND_SIZE);
+        /* === CHOOSE COMMAND === */
+        char attribute[COMMAND_SIZE];
+        int command_type = handleUserInput(command, attribute);
 
-    size_t count = send(sockfd, command, strlen(command) + 1, 0);
-    if (count < 0) logexit("send");
+        FILE file;
+        char fileContent[FILESIZE];
 
-    /* === RECEIVES ACK FROM SERVER === */
-    memset(command, 0, COMMAND_SIZE);
-    unsigned total = 0;
+        switch (command_type){
+            case 1:
+                {
+                    int selected_file_status = selectFile(attribute, &file, fileContent);
+                    if(selected_file_status == -1) continue;
 
-    while(1) {
-        count = recv(sockfd, command + total, COMMAND_SIZE-1, 0);
-        if (count == 0) {
-            break;
-        } else if (count < 0) {
-            logexit("recv");
+                    printf("File content:\n %s\n", fileContent);
+            
+                    break;
+                }
+            case 2:
+                break;
+            case 3:
+                break;
+            default:
+                continue;
+                break;
         }
-        
+
+        size_t count = send(sockfd, command, strlen(command) + 1, 0);
+        if (count < 0) logexit("send");
+
+         /* === RECEIVES ACK FROM SERVER === */
+        memset(command, 0, COMMAND_SIZE);
+        unsigned total = 0;
+
+        while(1) {
+            count = recv(sockfd, command + total, COMMAND_SIZE-1, 0);
+            if (count == 0) {
+                break;
+            } else if (count < 0) {
+                logexit("recv");
+            }
+
         total += count;
         printf("received: %s\n", command);
-    }
+        }
 
-    printf("received %u bytes\n", total);
-    puts(command);
+        printf("received %u bytes\n", total);
+        puts(command);
+
+
+    }
 
     //fecha o socket
     close(sockfd);
