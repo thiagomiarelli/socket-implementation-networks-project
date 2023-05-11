@@ -1,7 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 #include "commands.h"
+
+#define FILESIZE 512
+
 
 char** parseInput(char* input, int* numTokens){
     char** tokens = malloc(128 * sizeof(char*));
@@ -91,4 +96,17 @@ int validateExtension(char* filename){
     }
 
     return -1;
+}
+
+int sendFile(char* content, char* filename, int sockfd) {
+    char message[FILESIZE];
+
+    strcpy(message, filename);
+    strcat(message, content);
+    strcat(message, "\\end");
+    
+    size_t count = send(sockfd, message, strlen(message) + 1, 0);
+    if (count < 0) return -1;
+
+    return 0;
 }
