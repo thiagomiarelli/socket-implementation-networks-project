@@ -106,9 +106,7 @@ int sendFile(char* content, char* filename, int sockfd) {
     strcat(message, content);
     strcat(message, "\\end");
     
-    size_t count = send(sockfd, message, strlen(message) + 1, 0);
-    if (count < 0) return -1;
-
+    if(sendMessage(message, sockfd) == -1) return -1;
     return 0;
 }
 
