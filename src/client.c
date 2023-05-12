@@ -86,21 +86,21 @@ int main(int argc, char *argv[]) {
                     unsigned total = 0;
                     size_t count = 0;
 
-                    //reseting file selection
-                    memset(fileContent, 0, FILESIZE);
-                    fileSelected = 0;
+                    // //reseting file selection
+                    // memset(fileContent, 0, FILESIZE);
+                    // fileSelected = 0;
 
-                    while(1) {
-                        count = recv(sockfd, message + total, FILESIZE-1, 0);
-                        if (count == 0) {
-                            break;
-                        } else if (count < 0) {
-                           logexit("recv");
-                        }
-                        total += count;
-                    }
+                    // while(1) {
+                    //     count = recv(sockfd, message + total, FILESIZE-1, 0);
+                    //     if (count == 0) {
+                    //         break;
+                    //     } else if (count < 0) {
+                    //        logexit("recv");
+                    //     }
+                    //     total += count;
+                    // }
 
-                    printf("%s\n", message);
+                    // printf("%s\n", message);
                     
                     break;
                 }

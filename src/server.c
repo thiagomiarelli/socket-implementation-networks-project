@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "utils.h"
+#include "commands.h"
 #include <unistd.h>
 
 
@@ -58,23 +59,24 @@ int handle_client_conections(int sockfd){
 int main(int argc, char *argv[]) {
 
     int sockfd = setup_server(argc, argv);
-
+    int clientfd = handle_client_conections(sockfd);
 
     /* ====== ACCEPTING CONNECTIONS ====== */
     while(1){
-        int clientfd = handle_client_conections(sockfd);
 
         char buffer[BUFFER_SIZE];
         memset(buffer, 0, BUFFER_SIZE);
-        size_t count = recv(clientfd, buffer, BUFFER_SIZE-1, 0);
-        printf("Received %zu bytes\n", count);
+
+        if(receiveFile(buffer, clientfd) < 0) logexit("receiveFile");
+
+        printf("Received: %s\n", buffer);
 
         //sprintf(buffer, "[LOG] Acknoledgement from: %.1000s\n", clientAddressString);
-        count = send(clientfd, buffer, strlen(buffer) + 1, 0);
-        if (count != strlen(buffer) + 1) logexit("send");
-
-        close(clientfd);
+        //count = send(clientfd, buffer, strlen(buffer) + 1, 0);
+        //if (count != strlen(buffer) + 1) logexit("send");
     }
+    close(clientfd);
+
 
     exit(EXIT_SUCCESS);
 }

@@ -111,3 +111,11 @@ int sendFile(char* content, char* filename, int sockfd) {
 
     return 0;
 }
+
+int receiveFile(char* message, int sockfd){
+    size_t count = 0;
+    count = recv(sockfd, message, FILESIZE-1, 0);
+    if(count < 0) return -1;
+    
+    return 0;
+}
