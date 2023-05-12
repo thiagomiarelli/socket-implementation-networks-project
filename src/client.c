@@ -83,24 +83,16 @@ int main(int argc, char *argv[]) {
                     if(sendStatus == -1) continue;
 
                     memset(message, 0, FILESIZE);
-                    unsigned total = 0;
-                    size_t count = 0;
 
-                    // //reseting file selection
-                    // memset(fileContent, 0, FILESIZE);
-                    // fileSelected = 0;
+                    //reseting file selection
+                    memset(fileContent, 0, FILESIZE);
+                    fileSelected = 0;
 
-                    // while(1) {
-                    //     count = recv(sockfd, message + total, FILESIZE-1, 0);
-                    //     if (count == 0) {
-                    //         break;
-                    //     } else if (count < 0) {
-                    //        logexit("recv");
-                    //     }
-                    //     total += count;
-                    // }
+                    char acknoledgement[FILESIZE];
+                    int recvStatus = receiveMessage(acknoledgement, sockfd);
+                    if(recvStatus == -1) printf("error receiving message\n");
 
-                    // printf("%s\n", message);
+                    printf("acknoledgement: %s\n", acknoledgement);
                     
                     break;
                 }

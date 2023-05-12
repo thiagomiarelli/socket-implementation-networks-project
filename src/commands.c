@@ -112,10 +112,19 @@ int sendFile(char* content, char* filename, int sockfd) {
     return 0;
 }
 
-int receiveFile(char* message, int sockfd){
+int receiveMessage(char* message, int sockfd){
     size_t count = 0;
     count = recv(sockfd, message, FILESIZE-1, 0);
-    if(count < 0) return -1;
-    
+    if(count <= 0) return -1;
+
+    return 0;
+}
+
+int sendMessage(char* message, int sockfd){
+    size_t count = 0;
+    printf("sending %s\n", message);
+    count = send(sockfd, message, strlen(message) + 1, 0);
+    if(count != strlen(message) + 1) return -1;
+
     return 0;
 }

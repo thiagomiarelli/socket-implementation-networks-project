@@ -64,16 +64,18 @@ int main(int argc, char *argv[]) {
     /* ====== ACCEPTING CONNECTIONS ====== */
     while(1){
 
-        char buffer[BUFFER_SIZE];
-        memset(buffer, 0, BUFFER_SIZE);
+        char message[BUFFER_SIZE];
+        memset(message, 0, BUFFER_SIZE);
 
-        if(receiveFile(buffer, clientfd) < 0) logexit("receiveFile");
+        if(receiveMessage(message, clientfd) < 0) logexit("receiveFile");
 
-        printf("Received: %s\n", buffer);
+        printf("Received: %s\n", message);
 
-        //sprintf(buffer, "[LOG] Acknoledgement from: %.1000s\n", clientAddressString);
-        //count = send(clientfd, buffer, strlen(buffer) + 1, 0);
-        //if (count != strlen(buffer) + 1) logexit("send");
+        char acknolegment[BUFFER_SIZE];
+
+        sprintf(acknolegment, "[LOG] Acknoledgement from: %.512s\n", message);
+        
+        if(sendMessage(acknolegment, clientfd) < 0) logexit("sendFile");
     }
     close(clientfd);
 
