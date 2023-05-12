@@ -43,6 +43,18 @@ int setup_server(int argc, char* argv[]){
     return sockfd;
 }
 
+int handle_client_conections(int sockfd){
+    struct sockaddr_storage client;
+    struct sockaddr *clientAddress = (struct sockaddr *) &client;
+    socklen_t clientAddressLen = sizeof(client);
+
+    int clientfd = accept(sockfd, clientAddress, &clientAddressLen);
+    if(clientfd == -1) logexit("accept");
+
+    printf("client connected!\n");
+    return clientfd;
+}
+
 int main(int argc, char *argv[]) {
 
     int sockfd = setup_server(argc, argv);
@@ -50,23 +62,14 @@ int main(int argc, char *argv[]) {
 
     /* ====== ACCEPTING CONNECTIONS ====== */
     while(1){
-        struct sockaddr_storage client;
-        struct sockaddr *clientAddress = (struct sockaddr *) &client;
-        socklen_t clientAddressLen = sizeof(client);
-
-        int clientfd = accept(sockfd, clientAddress, &clientAddressLen); 
-        if(clientfd == -1) logexit("accept");
-
-        char clientAddressString[BUFFER_SIZE];
-        addrtostr(clientAddress, clientAddressString, BUFFER_SIZE);
-        printf("[LOG] New connection from: %s\n", clientAddressString);
+        int clientfd = handle_client_conections(sockfd);
 
         char buffer[BUFFER_SIZE];
         memset(buffer, 0, BUFFER_SIZE);
         size_t count = recv(clientfd, buffer, BUFFER_SIZE-1, 0);
-        printf("[MSG] %s: %s | bytes %zu\n", clientAddressString, buffer, count);
+        printf("Received %zu bytes\n", count);
 
-        sprintf(buffer, "[LOG] Acknoledgement from: %.1000s\n", clientAddressString);
+        //sprintf(buffer, "[LOG] Acknoledgement from: %.1000s\n", clientAddressString);
         count = send(clientfd, buffer, strlen(buffer) + 1, 0);
         if (count != strlen(buffer) + 1) logexit("send");
 
