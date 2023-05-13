@@ -70,7 +70,7 @@ int main(int argc, char *argv[]) {
                     int recvStatus = receiveMessage(serverResponse, sockfd);
                     if(recvStatus == -1) printf("error receiving message\n");
 
-                    printf("acknoledgement: %s\n", serverResponse);
+                    printf("%s\n", serverResponse);
                     
                     break;
                 }

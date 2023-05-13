@@ -19,6 +19,8 @@ int setup_server(int argc, char* argv[]);
 int handle_client_conections(int sockfd);
 int break_filename_and_content(char* message, char* filename, char* content);
 int check_if_end(char* message, int i);
+int check_if_server_has_file(char* filename);
+int save_file_on_server(char* filename, char* content);
 
 
 int main(int argc, char *argv[]) {
@@ -39,14 +41,19 @@ int main(int argc, char *argv[]) {
 
         if(break_filename_and_content(message, filename, content) < 0) logexit("break_filename_and_content");
 
-        printf("Filename: %s\n", filename);
-        printf("Content: %s\n", content);
+        printf("file %s received\n", filename);
 
-        printf("Received: %s\n", message);
+        int file_exists = check_if_server_has_file(filename);
+        int save_file_status = save_file_on_server(filename, content);
+        if(save_file_status < 0) logexit("save_file_on_server");
 
         char acknolegment[MAX_FILESIZE];
 
-        sprintf(acknolegment, "[LOG] Acknoledgement from: %.512s\n", message);
+        if(file_exists == 1){
+            sprintf(acknolegment, "file %s overwritten\n", filename);
+        } else {
+            sprintf(acknolegment, "file %s received\n", filename);
+        }   
         
         if(sendMessage(acknolegment, clientfd) < 0) logexit("sendFile");
     }
@@ -55,7 +62,6 @@ int main(int argc, char *argv[]) {
 
     exit(EXIT_SUCCESS);
 }
-
 
 void usage(int argc, char *argv[]) {
     printf("Usage: %s <v4|v6> <server port>\n", argv[0]);
@@ -126,5 +132,28 @@ int break_filename_and_content(char* message, char* filename, char* content){
 
 int check_if_end(char* message, int i){
     if(message[i] == '\\' && message[i+1] == 'e' && message[i+2] == 'n' && message[i+3] == 'd') return 1;
+    return 0;
+}
+
+int check_if_server_has_file(char* filename){
+    FILE *fp;
+    char filename_with_dir[MAX_FILESIZE];
+    sprintf(filename_with_dir, "server_files/%s", filename);
+    fp = fopen(filename_with_dir, "r");
+    if(fp == NULL) return 0;
+    fclose(fp);
+    return 1;
+}
+
+int save_file_on_server(char* filename, char* content){
+    FILE *fp;
+    char filename_with_dir[MAX_FILESIZE];
+    sprintf(filename_with_dir, "server_files/%s", filename);
+    printf("Saving file on server: %s\n", filename_with_dir);
+
+    fp = fopen(filename_with_dir, "w");
+    if(fp == NULL) return -1;
+    fprintf(fp, "%s", content);
+    fclose(fp);
     return 0;
 }

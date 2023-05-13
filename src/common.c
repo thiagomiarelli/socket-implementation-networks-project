@@ -157,7 +157,6 @@ int server_sockaddr_init(const char *proto, const char *portstr, struct sockaddr
 /* ==== COMMUNICATION HANDLING ==== */
 int sendMessage(char* message, int sockfd){
     size_t count = 0;
-    printf("sending %s\n", message);
     count = send(sockfd, message, strlen(message) + 1, 0);
     if(count != strlen(message) + 1) return -1;
 
@@ -223,12 +222,7 @@ int selectFile(char* filename, FILE* file, char* buffer){
 
 int sendFile(char* content, char* filename, int sockfd) {
     char message[FILESIZE];
-
-    strcpy(message, filename);
-    strcat(message, "\n");
-    strcat(message, content);
-    strcat(message, "\\end");
-    
+    sprintf(message, "%s\n%s\\end", filename, content); // saves filename and content in the same string
     if(sendMessage(message, sockfd) == -1) return -1;
     return 0;
 }
