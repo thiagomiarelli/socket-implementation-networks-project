@@ -7,7 +7,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
-#include "utils.h"
 #include "common.h"
 
 

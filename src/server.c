@@ -5,8 +5,8 @@
 
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <arpa/inet.h>
 
-#include "utils.h"
 #include "common.h"
 
 /* ==== CONSTANTS ==== */
