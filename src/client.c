@@ -80,9 +80,6 @@ int main(int argc, char *argv[]) {
                     int sendStatus = send(sockfd, "exit", strlen("exit") + 1, 0);
                     if (sendStatus < 0) return -1;
 
-                    unsigned total = 0;
-                    size_t count = 0;
-
                     if(receiveMessage(serverResponse, sockfd) == -1) printf("error receiving message\n");
 
                     if(close(sockfd) != 0) logexit("close");
