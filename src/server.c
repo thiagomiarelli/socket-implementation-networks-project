@@ -1,15 +1,18 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "utils.h"
-#include "commands.h"
 #include <unistd.h>
-
 
 #include <sys/socket.h>
 #include <sys/types.h>
 
-#define BUFFER_SIZE 1024
+#include "utils.h"
+#include "common.h"
+
+/* ==== CONSTANTS ==== */
+#define MAX_FILESIZE 512
+#define MAX_COMMAND_SIZE 256
+
 
 void usage(int argc, char *argv[]) {
     printf("Usage: %s <v4|v6> <server port>\n", argv[0]);
@@ -37,8 +40,8 @@ int setup_server(int argc, char* argv[]){
     if(bind(sockfd, address, address_len) != 0) logexit("bind");
     if(listen(sockfd, 10) != 0) logexit("listen");
 
-    char address_string[BUFFER_SIZE];
-    addrtostr(address, address_string, BUFFER_SIZE);
+    char address_string[MAX_FILESIZE];
+    addrtostr(address, address_string, MAX_FILESIZE);
     printf("listening on %s\n", address_string);
 
     return sockfd;
@@ -64,14 +67,14 @@ int main(int argc, char *argv[]) {
     /* ====== ACCEPTING CONNECTIONS ====== */
     while(1){
 
-        char message[BUFFER_SIZE];
-        memset(message, 0, BUFFER_SIZE);
+        char message[MAX_FILESIZE];
+        memset(message, 0, MAX_FILESIZE);
 
         if(receiveMessage(message, clientfd) < 0) logexit("receiveFile");
 
         printf("Received: %s\n", message);
 
-        char acknolegment[BUFFER_SIZE];
+        char acknolegment[MAX_FILESIZE];
 
         sprintf(acknolegment, "[LOG] Acknoledgement from: %.512s\n", message);
         

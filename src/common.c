@@ -3,7 +3,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include "commands.h"
+#include "common.h"
 
 #define FILESIZE 512
 

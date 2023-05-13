@@ -1,17 +1,104 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <arpa/inet.h>
 #include <unistd.h>
-#include "utils.h"
-#include "commands.h"
 
+#include <arpa/inet.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 
-#define COMMAND_SIZE 512
-#define FILESIZE 512
+#include "utils.h"
+#include "common.h"
+
+
+/* ==== CONSTANTS ==== */
+#define MAX_FILESIZE 512
+#define MAX_COMMAND_SIZE 256
 #define ADDR_SIZE 128
+
+/* ==== AUX FUNCTIONS ==== */
+void usage(int argc, char *argv[]);
+int setup_client(int argc, char* argv[]);
+
+int main(int argc, char *argv[]) {
+
+    int sockfd = setup_client(argc, argv);
+    int fileSelected = 0;
+
+    while(1){
+        /* === RECEIVE COMMAND === */
+        printf("command: ");
+        char command[MAX_COMMAND_SIZE];
+        get_user_input(command, MAX_COMMAND_SIZE);
+
+        /* === CHOOSE COMMAND === */
+        char attribute[MAX_COMMAND_SIZE];
+        int command_type = handleUserInput(command, attribute);
+
+        /* === AUX VARS === */
+        FILE file;
+        char fileContent[MAX_FILESIZE];
+        char serverResponse[MAX_FILESIZE];
+
+        switch (command_type){
+            case 1:
+                {
+                    int selected_file_status = selectFile(attribute, &file, fileContent);
+                    if(selected_file_status == -1){
+                        continue;
+                    } else {
+                        fileSelected = 1;
+                    }
+                    break;
+                }
+            case 2:
+                {   
+                    if(!fileSelected){
+                        printf("no file selected!\n");
+                        continue;
+                    }
+
+                    char message[MAX_FILESIZE];
+                    int sendStatus = sendFile(fileContent, attribute, sockfd);
+                    if(sendStatus == -1) continue;
+
+                    memset(message, 0, MAX_FILESIZE);
+
+                    //reseting file selection
+                    memset(fileContent, 0, MAX_FILESIZE);
+                    fileSelected = 0;
+
+                    int recvStatus = receiveMessage(serverResponse, sockfd);
+                    if(recvStatus == -1) printf("error receiving message\n");
+
+                    printf("acknoledgement: %s\n", serverResponse);
+                    
+                    break;
+                }
+            case 3:
+               {
+                    int sendStatus = send(sockfd, "exit", strlen("exit") + 1, 0);
+                    if (sendStatus < 0) return -1;
+
+                    unsigned total = 0;
+                    size_t count = 0;
+
+                    if(receiveMessage(serverResponse, sockfd) == -1) printf("error receiving message\n");
+
+                    if(close(sockfd) != 0) logexit("close");
+                    return 0;
+
+                    break;
+                }
+            default:
+                continue;
+                break;
+        }
+    }
+
+    //fecha o socket
+    close(sockfd);
+}
 
 void usage(int argc, char *argv[]) {
     printf("Usage: %s <server> <port>\n", argv[0]);
@@ -39,95 +126,4 @@ int setup_client(int argc, char* argv[]){
     printf("[LOG] Connected to: %s\n", address_string);
 
     return sockfd;
-}
-
-int main(int argc, char *argv[]) {
-
-    int sockfd = setup_client(argc, argv);
-    int fileSelected = 0;
-
-    while(1){
-        /* === RECEIVE COMMAND === */
-        printf("command: ");
-        char command[COMMAND_SIZE];
-        get_user_input(command, COMMAND_SIZE);
-
-        /* === CHOOSE COMMAND === */
-        char attribute[COMMAND_SIZE];
-        int command_type = handleUserInput(command, attribute);
-
-        /* === AUX VARS === */
-        FILE file;
-        char fileContent[FILESIZE];
-
-        switch (command_type){
-            case 1:
-                {
-                    int selected_file_status = selectFile(attribute, &file, fileContent);
-                    if(selected_file_status == -1){
-                        continue;
-                    } else {
-                        fileSelected = 1;
-                    }
-                    break;
-                }
-            case 2:
-                {   
-                    if(!fileSelected){
-                        printf("no file selected!\n");
-                        continue;
-                    }
-
-                    char message[FILESIZE];
-                    int sendStatus = sendFile(fileContent, attribute, sockfd);
-                    if(sendStatus == -1) continue;
-
-                    memset(message, 0, FILESIZE);
-
-                    //reseting file selection
-                    memset(fileContent, 0, FILESIZE);
-                    fileSelected = 0;
-
-                    char acknoledgement[FILESIZE];
-                    int recvStatus = receiveMessage(acknoledgement, sockfd);
-                    if(recvStatus == -1) printf("error receiving message\n");
-
-                    printf("acknoledgement: %s\n", acknoledgement);
-                    
-                    break;
-                }
-            case 3:
-               {
-                    char serverResponse[FILESIZE];
-
-                    int sendStatus = send(sockfd, "exit", strlen("exit") + 1, 0);
-                    if (sendStatus < 0) return -1;
-
-                    unsigned total = 0;
-                    size_t count = 0;
-
-                    while(1) {
-                            count = recv(sockfd, serverResponse + total, FILESIZE-1, 0);
-                            if (count == 0) {
-                                printf("Recebeu nada");
-                                break;
-                            } else if (count < 0) {
-                            logexit("recv");
-                            } 
-                            total += count;
-                    }
-
-                    if(close(sockfd) != 0) logexit("close");
-                    return 0;
-
-                    break;
-                }
-            default:
-                continue;
-                break;
-        }
-    }
-
-    //fecha o socket
-    close(sockfd);
 }
