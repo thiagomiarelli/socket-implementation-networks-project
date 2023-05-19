@@ -21,6 +21,7 @@ int break_filename_and_content(char* message, char* filename, char* content);
 int check_if_end(char* message, int i);
 int check_if_server_has_file(char* filename);
 int save_file_on_server(char* filename, char* content);
+int close_server(int sockfd);
 
 
 int main(int argc, char *argv[]) {
@@ -35,6 +36,12 @@ int main(int argc, char *argv[]) {
         memset(message, 0, MAX_FILESIZE);
 
         if(receiveMessage(message, clientfd) < 0) logexit("receiveFile");
+
+        if(strcmp(message, "exit") == 0){
+            printf("received exit command\n");
+            close_server(clientfd);
+            break;
+        }
 
         char filename[MAX_FILESIZE];
         char content[MAX_FILESIZE];
@@ -58,7 +65,6 @@ int main(int argc, char *argv[]) {
         if(sendMessage(acknolegment, clientfd) < 0) logexit("sendFile");
     }
     close(clientfd);
-
 
     exit(EXIT_SUCCESS);
 }
@@ -87,7 +93,7 @@ int setup_server(int argc, char* argv[]){
     socklen_t address_len = !strcmp(protocol, "v4") ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6);
 
     if(bind(sockfd, address, address_len) != 0) logexit("bind");
-    if(listen(sockfd, 10) != 0) logexit("listen");
+    if(listen(sockfd, 1) != 0) logexit("listen");
 
     char address_string[MAX_FILESIZE];
     addrtostr(address, address_string, MAX_FILESIZE);
@@ -110,21 +116,27 @@ int handle_client_conections(int sockfd){
 
 int break_filename_and_content(char* message, char* filename, char* content){
     int i = 0;
-    while(message[i] != '\n'){
+    int string_size = strlen(message);
+
+    while(message[i] != '\n' && i < string_size){
         filename[i] = message[i];
         i++;
     }
+    if(i == string_size) return -1; 
+
     filename[i] = '\0';
     i++;
 
     if(strlen(message) - i < 5) return -1; // if there is no space to store the /end
     int j = 0;
 
-    while(!check_if_end(message, i + 1)){
+    while(!check_if_end(message, i)){
         content[j] = message[i];
         i++;
         j++;
     }
+
+    if(i == string_size) return -1;
     content[j] = '\0';
 
     return 0;
@@ -155,5 +167,12 @@ int save_file_on_server(char* filename, char* content){
     if(fp == NULL) return -1;
     fprintf(fp, "%s", content);
     fclose(fp);
+    return 0;
+}
+
+int close_server(int sockfd){
+    printf("closing server\n");
+    sendMessage("connection closed\n", sockfd);
+    if(close(sockfd) != 0) logexit("close");
     return 0;
 }

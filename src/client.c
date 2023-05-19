@@ -76,10 +76,13 @@ int main(int argc, char *argv[]) {
                 }
             case 3:
                {
-                    int sendStatus = send(sockfd, "exit", strlen("exit") + 1, 0);
+                    int sendStatus = sendMessage("exit", sockfd);
                     if (sendStatus < 0) return -1;
 
+                    memset(serverResponse, 0, MAX_FILESIZE);
                     if(receiveMessage(serverResponse, sockfd) == -1) printf("error receiving message\n");
+
+                    if(strcmp(serverResponse, "connection closed\n") == 0) printf("%s", serverResponse);
 
                     if(close(sockfd) != 0) logexit("close");
                     return 0;
