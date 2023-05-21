@@ -30,50 +30,66 @@ int find_breakpoint(char* message);
 int main(int argc, char *argv[]) {
 
     int sockfd = setup_server(argc, argv);
-    int clientfd = handle_client_conections(sockfd);
 
-    /* ====== ACCEPTING CONNECTIONS ====== */
-    while(1){
+    while(1) {
+        int clientfd = handle_client_conections(sockfd);
+        int failure_disconection = 0;
 
-        char message[MAX_FILESIZE];
-        memset(message, 0, MAX_FILESIZE);
+        /* ====== ACCEPTING CONNECTIONS ====== */
+        while(1){
 
-        /* ==== VALIDATIONS ==== */
-        if(receiveMessage(message, clientfd) < 0) continue;
+            char message[MAX_FILESIZE];
+            memset(message, 0, MAX_FILESIZE);
 
-        int message_validation = validate_message(message);
-        if(message_validation < 0) continue;
+            /* ==== VALIDATIONS ==== */
+            if(receiveMessage(message, clientfd) < 0){
+                failure_disconection = 1;
+                break;
+            }
 
-        
-        /* ==== VALID COMMAND HANDLING ==== */
+            int message_validation = validate_message(message);
+            if(message_validation < 0){
+                failure_disconection = 1;
+                break;
+            }
 
-        //if command exits, close server
-        if(message_validation == 1) close_server(sockfd);
+            
+            /* ==== VALID COMMAND HANDLING ==== */
 
-        //if command is a file, save file
-        char filename[MAX_FILESIZE];
-        char content[MAX_FILESIZE];
+            //if command exits, close server
+            if(message_validation == 1 && close_server(clientfd) == 0){
+                break;
+            };
 
-        if(break_filename_and_content(message, filename, content) < 0) continue;
+            //if command is a file, save file
+            char filename[MAX_FILESIZE];
+            char content[MAX_FILESIZE];
 
-        printf("file %s received\n", filename);
+            if(break_filename_and_content(message, filename, content) < 0) break;
 
-        int file_exists = check_if_server_has_file(filename);
-        int save_file_status = save_file_on_server(filename, content);
-        if(save_file_status < 0) continue;
+            int file_exists = check_if_server_has_file(filename);
+            int save_file_status = save_file_on_server(filename, content);
 
-        char acknolegment[MAX_FILESIZE];
+            if(save_file_status < 0){
+                failure_disconection = 1;
+                break;
+            }
 
-        if(file_exists == 1){
-            sprintf(acknolegment, "file %s overwritten", filename);
-        } else {
-            sprintf(acknolegment, "file %s received", filename);
-        }   
-        
-        if(sendMessage(acknolegment, clientfd) < 0) continue;
+            if(file_exists == 0){
+                printf("file %s received\n", filename);
+            } else {
+                printf("file %s overwritten\n", filename);
+            }
+
+            
+            
+        }
+
+        if(failure_disconection == 1){
+            close(clientfd);
+        }
     }
-    close(clientfd);
-    exit(EXIT_FAILURE);
+    return EXIT_SUCCESS;
 }
 
 void usage(int argc, char *argv[]) {
@@ -104,8 +120,6 @@ int setup_server(int argc, char* argv[]){
 
     char address_string[MAX_FILESIZE];
     addrtostr(address, address_string, MAX_FILESIZE);
-    printf("[LOG] listening on %s\n", address_string);
-
     return sockfd;
 }
 
@@ -116,8 +130,6 @@ int handle_client_conections(int sockfd){
 
     int clientfd = accept(sockfd, clientAddress, &clientAddressLen);
     if(clientfd == -1) logexit("accept");
-
-    printf("client connected!\n");
     return clientfd;
 }
 
@@ -226,8 +238,6 @@ int save_file_on_server(char* filename, char* content){
     FILE *fp;
     char filename_with_dir[MAX_FILESIZE];
     sprintf(filename_with_dir, "server_files/%s", filename);
-    printf("Saving file on server: %s\n", filename_with_dir);
-
     fp = fopen(filename_with_dir, "w");
     if(fp == NULL) return -1;
     fprintf(fp, "%s", content);
@@ -236,7 +246,6 @@ int save_file_on_server(char* filename, char* content){
 }
 
 int close_server(int sockfd){
-    printf("closing server\n");
     sendMessage("connection closed\n", sockfd);
     if(close(sockfd) != 0) logexit("close");
     return EXIT_SUCCESS;

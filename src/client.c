@@ -30,20 +30,22 @@ int main(int argc, char *argv[]) {
         get_user_input(command, MAX_COMMAND_SIZE);
 
         /* === CHOOSE COMMAND === */
+        char attribute_candidate[MAX_COMMAND_SIZE];
         char attribute[MAX_COMMAND_SIZE];
-        int command_type = handleUserInput(command, attribute);
+        int command_type = handleUserInput(command, attribute_candidate);
 
         /* === AUX VARS === */
         FILE file;
         char fileContent[MAX_FILESIZE];
         char serverResponse[MAX_FILESIZE];
+        int failure_disconection = 0;
 
         switch (command_type){
             case 1:
                 {
-                    int selected_file_status = selectFile(attribute, &file, fileContent);
+                    int selected_file_status = selectFile(attribute_candidate, attribute, &file, fileContent);
                     if(selected_file_status == -1){
-                        continue;
+                        break;
                     } else {
                         fileSelected = 1;
                     }
@@ -53,45 +55,51 @@ int main(int argc, char *argv[]) {
                 {   
                     if(!fileSelected){
                         printf("no file selected!\n");
-                        continue;
+                        break;
                     }
 
-                    char message[MAX_FILESIZE];
                     int sendStatus = sendFile(fileContent, attribute, sockfd);
-                    if(sendStatus == -1) continue;
-
-                    memset(message, 0, MAX_FILESIZE);
-
-                    //reseting file selection
-                    memset(fileContent, 0, MAX_FILESIZE);
-
-                    int recvStatus = receiveMessage(serverResponse, sockfd);
-                    if(recvStatus == -1) continue;
-
-                    printf("%s\n", serverResponse);
+                    if(sendStatus == -1) {
+                        failure_disconection = 1;
+                        break;
+                    };
                     
                     break;
                 }
             case 3:
                {
-                    int sendStatus = sendMessage("exit", sockfd);
-                    if (sendStatus < 0) return -1;
-
                     memset(serverResponse, 0, MAX_FILESIZE);
-                    if(receiveMessage(serverResponse, sockfd) == -1) continue;
+
+                    int sendStatus = sendMessage("exit", sockfd);
+
+                    if (sendStatus < 0) {
+                        failure_disconection = 1;
+                        break;
+                    };
+
+                    if(receiveMessage(serverResponse, sockfd) == -1) {
+                        failure_disconection = 1;
+                        break;
+                    }
 
                     if(strcmp(serverResponse, "connection closed\n") == 0) printf("%s", serverResponse);
 
-                    if(close(sockfd) != 0) continue;
+                    if(close(sockfd) != 0) {
+                        perror("close");
+                        exit(EXIT_FAILURE);
+                    }
 
                     return EXIT_SUCCESS;
                     break;
                 }
             default:
                 break;
+
+            if(failure_disconection) break;
         }
     }
-    
+
+   close(sockfd);
    return EXIT_FAILURE;
 }
 
@@ -118,7 +126,5 @@ int setup_client(int argc, char* argv[]){
     
     char address_string[ADDR_SIZE];
     addrtostr(address, address_string, ADDR_SIZE);
-    printf("[LOG] Connected to: %s\n", address_string);
-
     return sockfd;
 }

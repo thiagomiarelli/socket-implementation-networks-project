@@ -1,1 +1,2 @@
-print("victory")
+print("victory")i
+Vai amemm

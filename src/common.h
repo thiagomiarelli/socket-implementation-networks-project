@@ -17,7 +17,7 @@ int receiveMessage(char* message, int sockfd);
 
 /* ==== FILE HANDLING ==== */
 int validateExtension(char* filename);
-int selectFile(char* filename, FILE* file, char* buffer);
+int selectFile(char* filename_candidate, char* filename, FILE* file, char* buffer);
 int sendFile(char* content, char* filename, int sockfd);
 
 /* ==== ERROR HANDLING ==== */

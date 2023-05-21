@@ -47,6 +47,7 @@ int handleUserInput(char* input, char* attribute){
     if(numTokens == 0) return -1;
 
     if(strcmp(tokens[0], "select") == 0 && strcmp(tokens[1], "file") == 0 && numTokens == 3){
+       memset(attribute, 0, 256);
        strcpy(attribute, tokens[2]);
        return 1;
 
@@ -177,7 +178,6 @@ int validateExtension(char* filename){
     char* extension = strrchr(filename, '.');
 
     if(extension == NULL){
-        printf("Invalid file extension\n");
         return -1;
     }
 
@@ -193,24 +193,28 @@ int validateExtension(char* filename){
     return -1;
 }
 
-int selectFile(char* filename, FILE* file, char* buffer){
-    file = fopen(filename, "r");
-
+int selectFile(char* filename_candidate, char* filename, FILE* file, char* buffer){
+    file = fopen(filename_candidate, "r");
+    
     if(file == NULL){
-        printf("%s does not exist\n", filename);
+        printf("%s does not exist\n", filename_candidate);
         return -1;
     }
 
-    if(validateExtension(filename) == -1){
-        printf("%s not valid!\n", filename);
+    if(validateExtension(filename_candidate) == -1){
+        printf("%s not valid!\n", filename_candidate);
         return -1;
     }
+    
+    memset(filename, 0, 256);
 
+    strcpy(filename, filename_candidate); 
 
     fseek(file, 0, SEEK_END);
     long file_size = ftell(file);
     rewind(file);
 
+    memset(buffer, 0, FILESIZE);
     fread(buffer, 1, file_size, file);
     
     printf("%s selected\n", filename);
