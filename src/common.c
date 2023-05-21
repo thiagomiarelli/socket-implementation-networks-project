@@ -222,7 +222,7 @@ int selectFile(char* filename, FILE* file, char* buffer){
 
 int sendFile(char* content, char* filename, int sockfd) {
     char message[FILESIZE];
-    sprintf(message, "%s\n%s\\end", filename, content); // saves filename and content in the same string
+    sprintf(message, "%s%s\\end", filename, content); // saves filename and content in the same string
     if(sendMessage(message, sockfd) == -1) return -1;
     return 0;
 }

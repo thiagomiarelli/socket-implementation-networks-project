@@ -26,7 +26,6 @@ int main(int argc, char *argv[]) {
 
     while(1){
         /* === RECEIVE COMMAND === */
-        printf("command: ");
         char command[MAX_COMMAND_SIZE];
         get_user_input(command, MAX_COMMAND_SIZE);
 
@@ -65,10 +64,9 @@ int main(int argc, char *argv[]) {
 
                     //reseting file selection
                     memset(fileContent, 0, MAX_FILESIZE);
-                    fileSelected = 0;
 
                     int recvStatus = receiveMessage(serverResponse, sockfd);
-                    if(recvStatus == -1) printf("error receiving message\n");
+                    if(recvStatus == -1) continue;
 
                     printf("%s\n", serverResponse);
                     
@@ -80,23 +78,21 @@ int main(int argc, char *argv[]) {
                     if (sendStatus < 0) return -1;
 
                     memset(serverResponse, 0, MAX_FILESIZE);
-                    if(receiveMessage(serverResponse, sockfd) == -1) printf("error receiving message\n");
+                    if(receiveMessage(serverResponse, sockfd) == -1) continue;
 
                     if(strcmp(serverResponse, "connection closed\n") == 0) printf("%s", serverResponse);
 
-                    if(close(sockfd) != 0) logexit("close");
-                    return 0;
+                    if(close(sockfd) != 0) continue;
 
+                    return EXIT_SUCCESS;
                     break;
                 }
             default:
-                continue;
                 break;
         }
     }
-
-    //fecha o socket
-    close(sockfd);
+    
+   return EXIT_FAILURE;
 }
 
 void usage(int argc, char *argv[]) {

@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <regex.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -22,6 +23,8 @@ int check_if_end(char* message, int i);
 int check_if_server_has_file(char* filename);
 int save_file_on_server(char* filename, char* content);
 int close_server(int sockfd);
+int validate_message(char* message);
+int find_breakpoint(char* message);
 
 
 int main(int argc, char *argv[]) {
@@ -35,38 +38,42 @@ int main(int argc, char *argv[]) {
         char message[MAX_FILESIZE];
         memset(message, 0, MAX_FILESIZE);
 
-        if(receiveMessage(message, clientfd) < 0) logexit("receiveFile");
+        /* ==== VALIDATIONS ==== */
+        if(receiveMessage(message, clientfd) < 0) continue;
 
-        if(strcmp(message, "exit") == 0){
-            printf("received exit command\n");
-            close_server(clientfd);
-            break;
-        }
+        int message_validation = validate_message(message);
+        if(message_validation < 0) continue;
 
+        
+        /* ==== VALID COMMAND HANDLING ==== */
+
+        //if command exits, close server
+        if(message_validation == 1) close_server(sockfd);
+
+        //if command is a file, save file
         char filename[MAX_FILESIZE];
         char content[MAX_FILESIZE];
 
-        if(break_filename_and_content(message, filename, content) < 0) logexit("break_filename_and_content");
+        if(break_filename_and_content(message, filename, content) < 0) continue;
 
         printf("file %s received\n", filename);
 
         int file_exists = check_if_server_has_file(filename);
         int save_file_status = save_file_on_server(filename, content);
-        if(save_file_status < 0) logexit("save_file_on_server");
+        if(save_file_status < 0) continue;
 
         char acknolegment[MAX_FILESIZE];
 
         if(file_exists == 1){
-            sprintf(acknolegment, "file %s overwritten\n", filename);
+            sprintf(acknolegment, "file %s overwritten", filename);
         } else {
-            sprintf(acknolegment, "file %s received\n", filename);
+            sprintf(acknolegment, "file %s received", filename);
         }   
         
-        if(sendMessage(acknolegment, clientfd) < 0) logexit("sendFile");
+        if(sendMessage(acknolegment, clientfd) < 0) continue;
     }
     close(clientfd);
-
-    exit(EXIT_SUCCESS);
+    exit(EXIT_FAILURE);
 }
 
 void usage(int argc, char *argv[]) {
@@ -97,7 +104,7 @@ int setup_server(int argc, char* argv[]){
 
     char address_string[MAX_FILESIZE];
     addrtostr(address, address_string, MAX_FILESIZE);
-    printf("listening on %s\n", address_string);
+    printf("[LOG] listening on %s\n", address_string);
 
     return sockfd;
 }
@@ -114,18 +121,51 @@ int handle_client_conections(int sockfd){
     return clientfd;
 }
 
+int validate_message(char* message){
+     regex_t regex;
+    int reti;
+
+    // Regular expression pattern
+    char *pattern = ".+\\.(txt|cpp|c|py|tex|java).+\\\\end";
+
+    // Compile the regular expression
+    reti = regcomp(&regex, pattern, REG_EXTENDED);
+    if (reti) {
+        fprintf(stderr, "Could not compile regex\n");
+        return -1;
+    }
+
+    // Execute regular expression
+    reti = regexec(&regex, message, 0, NULL, 0);
+    if (!reti) {
+        regfree(&regex);
+        return 0;
+    }
+    else if (strcmp(message, "exit") == 0) {
+        regfree(&regex);
+        return 1;
+    }
+    else {
+        regfree(&regex);
+        return -1;
+    } 
+}
+
 int break_filename_and_content(char* message, char* filename, char* content){
     int i = 0;
     int string_size = strlen(message);
+    int breakpoint = find_breakpoint(message);
 
-    while(message[i] != '\n' && i < string_size){
+    if(breakpoint == -1) return -1;
+    if(breakpoint > MAX_FILESIZE) return -1;
+    while(i <= breakpoint){
         filename[i] = message[i];
         i++;
     }
-    if(i == string_size) return -1; 
 
     filename[i] = '\0';
-    i++;
+
+    if(i == string_size) return -1; 
 
     if(strlen(message) - i < 5) return -1; // if there is no space to store the /end
     int j = 0;
@@ -140,6 +180,31 @@ int break_filename_and_content(char* message, char* filename, char* content){
     content[j] = '\0';
 
     return 0;
+}
+
+int find_breakpoint(char* message){
+    int i;
+    int string_size = strlen(message);
+    int cut_point = -1;
+
+    for(i = 0; i + 1 < string_size; i++){
+       if(message[i] =='.' && message[i+1] == 'c') cut_point = i + 1;
+
+       if(string_size - i >= 3) {
+            if(message[i] == '.' && message[i + 1] == 'p' && message[i + 2] == 'y') cut_point = i + 2;
+       }
+
+        if(string_size - i >= 4) {
+            if(message[i] == '.' && message[i + 1] == 't' && message[i + 2] == 'e' && message[i + 3] == 'x') cut_point = i + 3;
+            if(message[i] == '.' && message[i + 1] == 't' && message[i + 2] == 'x' && message[i + 3] == 't') cut_point = i + 3;
+            if(message[i] == '.' && message[i + 1] == 'c' && message[i + 2] == 'p' && message[i + 3] == 'p') cut_point = i + 3;
+        }
+
+        if(string_size - i >= 5) {
+            if(message[i] == '.' && message[i + 1] == 'j' && message[i + 2] == 'a' && message[i + 3] == 'v' && message[i + 4] == 'a') cut_point = i + 4;
+        }
+    }
+    return cut_point;
 }
 
 int check_if_end(char* message, int i){
@@ -174,5 +239,5 @@ int close_server(int sockfd){
     printf("closing server\n");
     sendMessage("connection closed\n", sockfd);
     if(close(sockfd) != 0) logexit("close");
-    return 0;
+    return EXIT_SUCCESS;
 }
