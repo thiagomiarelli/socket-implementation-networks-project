@@ -8,6 +8,8 @@
 #include <sys/types.h>
 #include <arpa/inet.h>
 
+#include <pthread.h>
+
 #include "common.h"
 
 /* ==== CONSTANTS ==== */
@@ -16,6 +18,7 @@
 
 /* ==== AUX FUNCTIONS ==== */
 void usage(int argc, char *argv[]);
+int create_conection_thread(int clientfd);
 int setup_server(int argc, char* argv[]);
 int handle_client_conections(int sockfd);
 int break_filename_and_content(char* message, char* filename, char* content);

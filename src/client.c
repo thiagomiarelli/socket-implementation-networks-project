@@ -19,6 +19,12 @@
 void usage(int argc, char *argv[]);
 int setup_client(int argc, char* argv[]);
 
+/* ==== THREAD PARAMS ====*/
+struct thread_params {
+    int clientfd;
+    int *id;
+};
+
 int main(int argc, char *argv[]) {
 
     int sockfd = setup_client(argc, argv);
